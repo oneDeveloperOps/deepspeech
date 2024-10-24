@@ -122,14 +122,17 @@ async def upload_file():
 
         results = await transcribe_files(processedFilePaths)
 
+        responseResult = []
+
+
         for file_path, transcription in results.items():
-            print(f"Transcribed text for {file_path}: {transcription}")
+            responseResult.append({ "file": file_path, "text": transcription })
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
         os.remove(videoPath)
 
-        return jsonify({'message': True }), 200
+        return jsonify({'data': responseResult }), 200
     
     return jsonify({'error': 'Invalid file.' }), 400
 
