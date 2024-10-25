@@ -17,6 +17,10 @@ import re
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+import whisper
+
+modelWisper = whisper.load_model("tiny.en")
+
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
@@ -27,7 +31,7 @@ model_path = 'deepspeech-0.9.3-models.pbmm'
 scorer_path = 'deepspeech-0.9.3-models.scorer'
 
 model = deepspeech.Model(model_path)
-# model.enableExternalScorer(scorer_path)
+model.enableExternalScorer(scorer_path)
 
 def read_wav_file(filename):
     with wave.open(filename, 'rb') as wf:
@@ -76,6 +80,13 @@ def processAudioAndExtractTranscription(path):
     text = model.stt(audio)
     return path, text
 
+def processAudioAndExtractTranscriptionWisper(path):
+    try:
+        result = modelWisper.transcribe(path)
+        return path, result["text"]
+    except:
+        print("error")
+
 async def transcribe_files(audio_files):
     loop = asyncio.get_event_loop()
     results = {}
@@ -90,8 +101,8 @@ async def transcribe_files(audio_files):
             results[file_path] = transcription
     return results
 
-@app.route('/upload-video', methods=['POST'])
-async def upload_file():
+@app.route('/upload-video/<mod>', methods=['POST'])
+async def upload_file(mod):
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -120,13 +131,18 @@ async def upload_file():
         
         processedFilePaths = split_audio(audioPath, newFileName)
 
-        results = await transcribe_files(processedFilePaths)
-
         responseResult = []
 
-
-        for file_path, transcription in results.items():
-            responseResult.append({ "file": file_path, "text": transcription })
+        if mod == 1:
+            print("mozilla deepspeech")
+            results = await transcribe_files(processedFilePaths)
+            for file_path, transcription in results.items():
+                responseResult.append({ "file": file_path, "text": transcription })
+        else:
+            print("wisper")
+            for d in processedFilePaths:
+                path, text = processAudioAndExtractTranscriptionWisper(d)
+                responseResult.append(text)
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
