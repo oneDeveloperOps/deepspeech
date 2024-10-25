@@ -17,6 +17,8 @@ import openai
 import ast
 from dotenv import load_dotenv
 
+load_dotenv()
+
 
 modelWisper = whisper.load_model("tiny.en")
 
