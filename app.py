@@ -19,7 +19,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 import whisper
 
+import openai
+
+import ast
+
 modelWisper = whisper.load_model("tiny.en")
+
+openai.api_key = "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"
 
 app = Flask(__name__)
 
@@ -101,6 +107,23 @@ async def transcribe_files(audio_files):
             results[file_path] = transcription
     return results
 
+def parseIngredients(ingredients):
+    ingredient_list = ast.literal_eval(ingredients)
+    ingredient_dict = {}
+    for item in ingredient_list:
+        ingredient, quantity = item.rsplit('-', 1)
+        ingredient_dict[ingredient] = quantity
+    return ingredient_dict
+
+def fetchIngredientsFromGPT(text):
+    prompt = f"Please extract ingredients from the text also if possible extract quantity in array form like ['egg-1', 'tomato-2'], make sure to not add any additional text in response just array, if unable to extract quantity keep it 1, text is: {text}"
+    response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+    ingredients = response['choices'][0]['message']['content']
+    return parseIngredients(ingredients)
+
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
     
@@ -139,10 +162,13 @@ async def upload_file(mod):
             for file_path, transcription in results.items():
                 responseResult.append({ "file": file_path, "text": transcription })
         else:
+            finalString = ""
             print("wisper")
             for d in processedFilePaths:
                 path, text = processAudioAndExtractTranscriptionWisper(d)
-                responseResult.append(text)
+                finalString += text + " "
+            responseData = fetchIngredientsFromGPT(finalString)
+            responseResult.append(responseData)
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
@@ -155,4 +181,7 @@ async def upload_file(mod):
 if __name__ == '__main__':
     # Create the uploads folder if it doesn't exist
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=False, threaded=True)
+    app.run(debug=True, threaded=True)
+
+    #ingredients
+    #quantity if possible
