@@ -80,6 +80,7 @@ def processAudioAndExtractTranscription(path):
     # audio, sample_rate = read_wav_file(path)
     # text = model.stt(audio)
     # return path, text
+    pass
 
 def processAudioAndExtractTranscriptionWisper(path):
     try:
