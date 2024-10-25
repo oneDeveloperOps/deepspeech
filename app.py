@@ -16,6 +16,7 @@ import whisper
 import openai
 import ast
 from dotenv import load_dotenv
+from fuzzywuzzy import process
 
 load_dotenv()
 
@@ -286,9 +287,9 @@ async def upload_file(mod):
 
         finalDict = {}
         for k in finalIngredients:
-            best_match = difflib.get_close_matches(k, SAMPLE_FOODS)
+            best_match = process.extractOne(k, SAMPLE_FOODS)
             print(best_match)
-            finalDict[best_match] = responseResult[0][k]
+            finalDict[best_match[0]] = responseResult[0][k]
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
