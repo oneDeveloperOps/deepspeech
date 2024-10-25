@@ -28,8 +28,8 @@ UPLOAD_FOLDER = 'uploads'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-model_path = 'deepspeech-0.9.3-models.pbmm'
-scorer_path = 'deepspeech-0.9.3-models.scorer'
+# model_path = 'deepspeech-0.9.3-models.pbmm'
+# scorer_path = 'deepspeech-0.9.3-models.scorer'
 
 model = deepspeech.Model(model_path)
 model.enableExternalScorer(scorer_path)
@@ -77,9 +77,9 @@ def split_audio(file_path, folderName, segment_length=30):
     return filePaths
 
 def processAudioAndExtractTranscription(path):
-    audio, sample_rate = read_wav_file(path)
-    text = model.stt(audio)
-    return path, text
+    # audio, sample_rate = read_wav_file(path)
+    # text = model.stt(audio)
+    # return path, text
 
 def processAudioAndExtractTranscriptionWisper(path):
     try:
