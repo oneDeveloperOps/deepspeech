@@ -5,27 +5,22 @@ from moviepy.audio.fx.all import audio_normalize
 import random
 import string
 from pydub import AudioSegment
-
 import deepspeech
 import numpy as np
 import wave
-
 import shutil
-
 import re
-
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-
 import whisper
-
 import openai
-
 import ast
+from dotenv import load_dotenv
+
 
 modelWisper = whisper.load_model("tiny.en")
 
-openai.api_key = "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"
+openai.api_key = os.getenv("OPENAI_APIKEY")
 
 app = Flask(__name__)
 
