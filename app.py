@@ -31,8 +31,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # model_path = 'deepspeech-0.9.3-models.pbmm'
 # scorer_path = 'deepspeech-0.9.3-models.scorer'
 
-model = deepspeech.Model(model_path)
-model.enableExternalScorer(scorer_path)
+# model = deepspeech.Model(model_path)
+# model.enableExternalScorer(scorer_path)
 
 def read_wav_file(filename):
     with wave.open(filename, 'rb') as wf:

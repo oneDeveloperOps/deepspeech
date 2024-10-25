@@ -8,6 +8,7 @@ ENV PYTHONUNBUFFERED 1
 # Set the working directory in the container
 WORKDIR /app
 
+ENV OPENAI_API_KEY="api key"
 # Install FFmpeg and wget
 RUN apt-get update && apt-get install -y ffmpeg wget && rm -rf /var/lib/apt/lists/*
 
