@@ -12,7 +12,7 @@ ARG OPENAI_API_KEY
 ENV OPENAI_API_KEY=${OPENAI_API_KEY}
 
 # Install FFmpeg and wget
-RUN apt-get update && apt-get install -y ffmpeg wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg wget git && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements.txt file first to leverage Docker cache
 COPY requirements.txt .
@@ -20,6 +20,7 @@ COPY requirements.txt .
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install git+https://github.com/openai/whisper.git 
 # Copy the rest of the application code
 COPY . .
 

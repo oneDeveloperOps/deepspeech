@@ -6,7 +6,6 @@ moviepy==1.0.3
 pydub==0.25.1
 deepspeech==0.9.3
 numpy==1.19.5
-whisper==1.0
 openai
 python-dotenv==0.19.2
 torch
