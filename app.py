@@ -36,6 +36,119 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # model = deepspeech.Model(model_path)
 # model.enableExternalScorer(scorer_path)
 
+SAMPLE_FOODS = [
+    "Basil",
+    "Oregano",
+    "Thyme",
+    "Rosemary",
+    "Cilantro",
+    "Parsley",
+    "Dill",
+    "Sage",
+    "Cumin",
+    "Paprika",
+    "Onion",
+    "Garlic",
+    "Carrot",
+    "Tomato",
+    "Bell pepper",
+    "Spinach",
+    "Broccoli",
+    "Potato",
+    "Zucchini",
+    "Cauliflower",
+    "Apple",
+    "Banana",
+    "Orange",
+    "Lemon",
+    "Berries",
+    "Avocado",
+    "Grapes",
+    "Mango",
+    "Pineapple",
+    "Kiwi",
+    "Rice",
+    "Quinoa",
+    "Lentils",
+    "Chickpeas",
+    "Black beans",
+    "Oats",
+    "Barley",
+    "Pasta",
+    "Wheat flour",
+    "Cornmeal",
+    "Chicken",
+    "Beef",
+    "Pork",
+    "Fish",
+    "Tofu",
+    "Eggs",
+    "Tempeh",
+    "Shrimp",
+    "Turkey",
+    "Lamb",
+    "Milk",
+    "Yogurt",
+    "Cheese",
+    "Butter",
+    "Cream",
+    "Almond milk",
+    "Soy milk",
+    "Coconut yogurt",
+    "Goat cheese",
+    "Sour cream",
+    "Olive oil",
+    "Vegetable oil",
+    "Coconut oil",
+    "Sesame oil",
+    "Balsamic vinegar",
+    "Apple cider vinegar",
+    "Red wine vinegar",
+    "Rice vinegar",
+    "Canola oil",
+    "Peanut oil",
+    "Soy sauce",
+    "Ketchup",
+    "Mustard",
+    "Hot sauce",
+    "Barbecue sauce",
+    "Salsa",
+    "Mayonnaise",
+    "Honey",
+    "Worcestershire sauce",
+    "Tahini",
+    "Almonds",
+    "Walnuts",
+    "Cashews",
+    "Chia seeds",
+    "Flaxseeds",
+    "Pumpkin seeds",
+    "Sunflower seeds",
+    "Pistachios",
+    "Hazelnuts",
+    "Pecans",
+    "Sugar",
+    "Baking powder",
+    "Baking soda",
+    "Yeast",
+    "Cocoa powder",
+    "Vanilla extract",
+    "Chocolate chips",
+    "Cornstarch",
+    "Honey",
+    "Molasses",
+    "Coconut flakes",
+    "Panko breadcrumbs",
+    "Instant coffee",
+    "Matcha powder",
+    "Nutritional yeast",
+    "Sea salt",
+    "Black pepper",
+    "Maple syrup",
+    "Miso paste",
+    "Fermented vegetables"
+]
+
 def read_wav_file(filename):
     with wave.open(filename, 'rb') as wf:
         frames = wf.getnframes()
@@ -168,11 +281,20 @@ async def upload_file(mod):
             responseData = fetchIngredientsFromGPT(finalString)
             responseResult.append(responseData)
 
+        finalIngredients = responseResult[0].keys()
+
+
+        finalDict = {}
+        for k in finalIngredients:
+            best_match = difflib.get_close_matches(k, SAMPLE_FOODS)
+            print(best_match)
+            finalDict[best_match] = responseResult[0][k]
+
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
         os.remove(videoPath)
 
-        return jsonify({'data': responseResult }), 200
+        return jsonify({'data': finalDict }), 200
     
     return jsonify({'error': 'Invalid file.' }), 400
 
