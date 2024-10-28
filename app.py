@@ -17,6 +17,9 @@ import openai
 import ast
 from dotenv import load_dotenv
 from fuzzywuzzy import process
+from pytube import YouTube
+import subprocess
+import shlex
 
 load_dotenv()
 
@@ -224,7 +227,7 @@ def parseIngredients(ingredients):
     ingredient_dict = {}
     for item in ingredient_list:
         ingredient, quantity = item.rsplit('-', 1)
-        ingredient_dict[ingredient] = quantity
+        ingredient_dict[ingredient] = int(quantity)
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
@@ -236,36 +239,54 @@ def fetchIngredientsFromGPT(text):
     ingredients = response['choices'][0]['message']['content']
     return parseIngredients(ingredients)
 
+def downloadYoutubeVideo(url, name):
+    try:
+        print(url)
+        command = f"yt-dlp {url} -o {os.getcwd()}/uploads/{name} -S res:240"
+        args = shlex.split(command)
+        subprocess.run(args, check=True, text=True, capture_output=True)
+        print("downloaded")
+        return 1
+    except Exception as e: 
+        print(e)
+        return -1
+
+
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
     
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+    url = request.args.get("url")
+
+    if 'file' not in request.files and url == None:
+        return jsonify({'error': 'No url or file found'}), 400
     
-    file = request.files['file']
+    file = None
     
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+    try:
+        file = request.files['file']
+    except:
+        print("file not available checking with url")
     
-    if file:
+    if file or url:
         newFileName = getFileName()
         
         folderPath = app.config['UPLOAD_FOLDER']
-        
-        videoName = newFileName + substring_from_last_dot(file.filename)
-        
-        audioName =  newFileName + '.wav'
+        videoName = ""
+        if file:
+            videoName = newFileName + substring_from_last_dot(file.filename)
+            file.save(videoPath)
+        else:
+            print(url)
+            isDownloaded = downloadYoutubeVideo(url, newFileName)
+            videoName = newFileName + ".webm"
+            if (isDownloaded == -1):
+                return jsonify({'error': 'Video download failed'}), 400
         
         videoPath = os.path.join(folderPath, videoName)
-        
+        audioName =  newFileName + '.wav'
         audioPath = os.path.join(folderPath, audioName)
-        
-        file.save(videoPath)
-        
         convert_video_to_audio(videoPath, audioPath)
-        
         processedFilePaths = split_audio(audioPath, newFileName)
-
         responseResult = []
 
         if mod == 1:
