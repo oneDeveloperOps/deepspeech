@@ -24,7 +24,7 @@ import shlex
 load_dotenv()
 
 
-modelWisper = whisper.load_model("tiny.en")
+modelWisper = whisper.load_model("base")
 
 openai.api_key = os.getenv("OPENAI_APIKEY")
 
@@ -203,7 +203,8 @@ def processAudioAndExtractTranscription(path):
 
 def processAudioAndExtractTranscriptionWisper(path):
     try:
-        result = modelWisper.transcribe(path)
+        result = modelWisper.transcribe(path, task="translate")
+        print(result["text"])
         return path, result["text"]
     except:
         print("error")
@@ -227,7 +228,7 @@ def parseIngredients(ingredients):
     ingredient_dict = {}
     for item in ingredient_list:
         ingredient, quantity = item.rsplit('-', 1)
-        ingredient_dict[ingredient] = int(quantity)
+        ingredient_dict[ingredient] = quantity
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
