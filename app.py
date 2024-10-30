@@ -24,7 +24,7 @@ import shlex
 load_dotenv()
 
 
-modelWisper = whisper.load_model("base")
+modelWisper = whisper.load_model("small")
 
 openai.api_key = os.getenv("OPENAI_APIKEY")
 
@@ -204,7 +204,7 @@ def processAudioAndExtractTranscription(path):
 def processAudioAndExtractTranscriptionWisper(path):
     try:
         result = modelWisper.transcribe(path, task="translate")
-        print(result["text"])
+        print(result["language"])
         return path, result["text"]
     except:
         print("error")
@@ -232,7 +232,7 @@ def parseIngredients(ingredients):
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
-    prompt = f"Please extract ingredients from the text also if possible extract quantity in array form like ['egg-1', 'tomato-2'], make sure to not add any additional text in response just array, if unable to extract quantity keep it 1, text is: {text}"
+    prompt = f"Please extract ingredients from the text, make sure to translate ingredients in english for example bangun should be eggplant, also if possible extract quantity in array form like ['egg-1', 'tomato-2'], make sure to not add any additional text in response just array, if unable to extract quantity keep it 0, Keep the first letter capital, text is: {text}"
     response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
@@ -309,9 +309,11 @@ async def upload_file(mod):
 
         finalDict = {}
         for k in finalIngredients:
+            if (k == 'Suger'):
+                continue
+            print(k)
             best_match = process.extractOne(k, SAMPLE_FOODS)
-            print(best_match)
-            finalDict[best_match[0]] = responseResult[0][k]
+            finalDict[k] = responseResult[0][k]
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
