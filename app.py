@@ -175,7 +175,7 @@ def substring_from_last_dot(s):
 def getFileName():
     return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
-def split_audio(file_path, folderName, segment_length=30):
+def split_audio(file_path, folderName, segment_length=60):
     audio = AudioSegment.from_file(file_path)
     audio = audio.set_channels(1)
     audio = audio.set_frame_rate(16000)
@@ -232,7 +232,7 @@ def parseIngredients(ingredients):
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
-    prompt = f"Please extract ingredients from the text, make sure to translate ingredients in english for example bangun should be eggplant, also if possible extract quantity in array form like ['egg-1', 'tomato-2'], make sure to not add any additional text in response just array, if unable to extract quantity keep it 0, Keep the first letter capital, text is: {text}"
+    prompt = f"Please extract ingredients from the text, make sure to translate ingredients in english for example bangun should be eggplant, also if possible extract quantity in array form like ['egg-1', 'tomato-2'], in quantity please include only integer like [egg-1] here egg is ingredient and 1 is quantity , make sure to not add any additional text in response just array, if unable to extract quantity keep it 0, Keep the first letter capital, text is: {text}"
     response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
@@ -279,7 +279,14 @@ async def upload_file(mod):
         else:
             print(url)
             isDownloaded = downloadYoutubeVideo(url, newFileName)
-            videoName = newFileName + ".webm"
+            dirContents = os.listdir("uploads")
+
+            for v in dirContents:
+                if newFileName in v:
+                    print(v)
+                    videoName = v
+                    break
+
             if (isDownloaded == -1):
                 return jsonify({'error': 'Video download failed'}), 400
         
@@ -309,8 +316,6 @@ async def upload_file(mod):
 
         finalDict = {}
         for k in finalIngredients:
-            if (k == 'Suger'):
-                continue
             print(k)
             best_match = process.extractOne(k, SAMPLE_FOODS)
             finalDict[k] = responseResult[0][k]
