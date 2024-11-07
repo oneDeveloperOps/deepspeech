@@ -20,6 +20,9 @@ from fuzzywuzzy import process
 from pytube import YouTube
 import subprocess
 import shlex
+import xmltodict
+import json
+import requests
 
 load_dotenv()
 
@@ -40,118 +43,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # model = deepspeech.Model(model_path)
 # model.enableExternalScorer(scorer_path)
 
-SAMPLE_FOODS = [
-    "Basil",
-    "Oregano",
-    "Thyme",
-    "Rosemary",
-    "Cilantro",
-    "Parsley",
-    "Dill",
-    "Sage",
-    "Cumin",
-    "Paprika",
-    "Onion",
-    "Garlic",
-    "Carrot",
-    "Tomato",
-    "Bell pepper",
-    "Spinach",
-    "Broccoli",
-    "Potato",
-    "Zucchini",
-    "Cauliflower",
-    "Apple",
-    "Banana",
-    "Orange",
-    "Lemon",
-    "Berries",
-    "Avocado",
-    "Grapes",
-    "Mango",
-    "Pineapple",
-    "Kiwi",
-    "Rice",
-    "Quinoa",
-    "Lentils",
-    "Chickpeas",
-    "Black beans",
-    "Oats",
-    "Barley",
-    "Pasta",
-    "Wheat flour",
-    "Cornmeal",
-    "Chicken",
-    "Beef",
-    "Pork",
-    "Fish",
-    "Tofu",
-    "Eggs",
-    "Tempeh",
-    "Shrimp",
-    "Turkey",
-    "Lamb",
-    "Milk",
-    "Yogurt",
-    "Cheese",
-    "Butter",
-    "Cream",
-    "Almond milk",
-    "Soy milk",
-    "Coconut yogurt",
-    "Goat cheese",
-    "Sour cream",
-    "Olive oil",
-    "Vegetable oil",
-    "Coconut oil",
-    "Sesame oil",
-    "Balsamic vinegar",
-    "Apple cider vinegar",
-    "Red wine vinegar",
-    "Rice vinegar",
-    "Canola oil",
-    "Peanut oil",
-    "Soy sauce",
-    "Ketchup",
-    "Mustard",
-    "Hot sauce",
-    "Barbecue sauce",
-    "Salsa",
-    "Mayonnaise",
-    "Honey",
-    "Worcestershire sauce",
-    "Tahini",
-    "Almonds",
-    "Walnuts",
-    "Cashews",
-    "Chia seeds",
-    "Flaxseeds",
-    "Pumpkin seeds",
-    "Sunflower seeds",
-    "Pistachios",
-    "Hazelnuts",
-    "Pecans",
-    "Sugar",
-    "Baking powder",
-    "Baking soda",
-    "Yeast",
-    "Cocoa powder",
-    "Vanilla extract",
-    "Chocolate chips",
-    "Cornstarch",
-    "Honey",
-    "Molasses",
-    "Coconut flakes",
-    "Panko breadcrumbs",
-    "Instant coffee",
-    "Matcha powder",
-    "Nutritional yeast",
-    "Sea salt",
-    "Black pepper",
-    "Maple syrup",
-    "Miso paste",
-    "Fermented vegetables"
-]
+productNamesArray = []
+keyValueDictProducts = {}
+
+def getSpruceData():
+    url = "https://api.cmcffxkc6k-nagarroes2-d1-public.model-t.cc.commerce.ondemand.com/occ/v2/spruce-spa/productDetails?fields=DEFAULT"
+    response = requests.get(url)
+    data = response.json()
+    mainArrayList = data.get("productInfoList")
+    for d in mainArrayList:
+        productNamesArray.append(d.get("name"))
+        keyValueDictProducts[d.get("name")] = d.get("code")
+    return 0
 
 def read_wav_file(filename):
     with wave.open(filename, 'rb') as wf:
@@ -267,14 +170,14 @@ async def upload_file(mod):
         file = request.files['file']
     except:
         print("file not available checking with url")
-    
+    videoPath = None
     if file or url:
         newFileName = getFileName()
         
         folderPath = app.config['UPLOAD_FOLDER']
-        videoName = ""
         if file:
             videoName = newFileName + substring_from_last_dot(file.filename)
+            videoPath = os.path.join(folderPath, videoName)
             file.save(videoPath)
         else:
             print(url)
@@ -286,11 +189,10 @@ async def upload_file(mod):
                     print(v)
                     videoName = v
                     break
-
+            videoPath = os.path.join(folderPath, videoName)
             if (isDownloaded == -1):
                 return jsonify({'error': 'Video download failed'}), 400
-        
-        videoPath = os.path.join(folderPath, videoName)
+
         audioName =  newFileName + '.wav'
         audioPath = os.path.join(folderPath, audioName)
         convert_video_to_audio(videoPath, audioPath)
@@ -317,8 +219,9 @@ async def upload_file(mod):
         finalDict = {}
         for k in finalIngredients:
             print(k)
-            best_match = process.extractOne(k, SAMPLE_FOODS)
-            finalDict[k] = responseResult[0][k]
+            best_match = process.extractOne(k, productNamesArray)
+            if best_match and best_match[1] > 90:
+                finalDict[keyValueDictProducts[best_match[0]]] = responseResult[0][k]
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
@@ -330,6 +233,7 @@ async def upload_file(mod):
 
 if __name__ == '__main__':
     # Create the uploads folder if it doesn't exist
+    getSpruceData()
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True, threaded=True)
 
