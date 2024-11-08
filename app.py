@@ -218,10 +218,10 @@ async def upload_file(mod):
 
         finalDict = {}
         for k in finalIngredients:
-            print(k)
             best_match = process.extractOne(k, productNamesArray)
-            if best_match and best_match[1] > 90:
-                finalDict[keyValueDictProducts[best_match[0]]] = responseResult[0][k]
+            print(keyValueDictProducts.get(best_match[0]))
+            if best_match and best_match[1] > 85:
+                finalDict[keyValueDictProducts.get(best_match[0])] = responseResult[0][k]
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
