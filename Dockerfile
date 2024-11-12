@@ -14,6 +14,10 @@ ENV OPENAI_API_KEY=${OPENAI_API_KEY}
 # Install FFmpeg and wget
 RUN apt-get update && apt-get install -y ffmpeg wget git && rm -rf /var/lib/apt/lists/*
 
+RUN pip install flask[async]
+
+RUN python3 -m pip install -U "yt-dlp[default]"
+
 # Copy the requirements.txt file first to leverage Docker cache
 COPY requirements.txt .
 

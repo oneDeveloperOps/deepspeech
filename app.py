@@ -17,7 +17,6 @@ import openai
 import ast
 from dotenv import load_dotenv
 from fuzzywuzzy import process
-from pytube import YouTube
 import subprocess
 import shlex
 import xmltodict
@@ -155,11 +154,75 @@ def downloadYoutubeVideo(url, name):
         print(e)
         return -1
 
+def getRecipePrompt(transcript):
+    prompt = f"""
+    Task:
+    I have a transcript of a cooking video. Your job is to extract the relevant details and create a step-by-step recipe based on the instructions given in the video. Make sure to include the following sections:
+
+    Recipe Title – A clear, concise title for the recipe.
+    Ingredients – List containing all ingredients with their quantities.
+    Recipe – List containing the cooking process in easy-to-follow steps.
+    Nutritional Information – Provide the nutritional values if mentioned in the video.
+    Description – A brief description of the dish.
+    Allergens – List any allergens mentioned (e.g., gluten, dairy).
+    Bite Type – Specify if the recipe is vegetarian, vegan, non-vegetarian, etc.
+    
+    Instructions for formatting:
+        - The format of the response will be strictly in JSON as shown below:
+        {{
+            "dish_name": "Recipe title here",
+            "cook_time": "Recipe cook time (e.g., 40 minutes)",
+            "servings": "Number of people that can be served (e.g., 1)",
+            "allergens": "List of allergens if mentioned (e.g., Gluten, Dairy)",
+            "description": "Brief description of the dish",
+            "nutritional_values": {{
+                "energy": "Energy in kcal (e.g., 300 kcal)",
+                "protein": "Amount of protein (e.g., 5 g)",
+                "fat": "Amount of fat (e.g., 15 g)",
+                "carbs": "Amount of carbohydrates (e.g., 40 g)"
+            }},
+            "bitetype": "Veg, Non-Veg, Vegan, etc.",
+            "ingredients": [
+                {{
+                    "ingredient": "Ingredient name",
+                    "quantity": "Quantity of the ingredient"
+                }},
+                ...  // Additional ingredients as necessary
+            ],
+            "recipe": [
+                {{
+                    "step": "Step 1 description"
+                }},
+                ...  // Additional steps as necessary
+            ]
+        }}
+
+    - Provide a friendly, easy-to-understand tone, suitable for a general audience.
+    - Avoid including unnecessary details that aren't part of the recipe or cooking process (e.g., unrelated discussions).
+    - If there are any unclear steps or missing information, make sure to clearly indicate them as "Unclear" or "Missing."
+
+    Transcript:
+    Here is the transcript from the video: {transcript}
+    """
+    return prompt
+
+
+def fetchRecipeFromTranscript(prompt):
+    response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+    recipe = response['choices'][0]['message']['content']
+    cleaned_response = recipe.replace("```json\n", "").replace("```", "").strip()
+    print(cleaned_response)
+    return json.loads(cleaned_response)
+
 
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
     
     url = request.args.get("url")
+    is_recipe = request.args.get("recipe")
 
     if 'file' not in request.files and url == None:
         return jsonify({'error': 'No url or file found'}), 400
@@ -210,6 +273,10 @@ async def upload_file(mod):
             for d in processedFilePaths:
                 path, text = processAudioAndExtractTranscriptionWisper(d)
                 finalString += text + " "
+            recipe = ''
+            if is_recipe == "true" or is_recipe == "True":
+                recipe = fetchRecipeFromTranscript(getRecipePrompt(finalString))
+            print(recipe)
             responseData = fetchIngredientsFromGPT(finalString)
             responseResult.append(responseData)
 
@@ -227,7 +294,7 @@ async def upload_file(mod):
         os.remove(audioPath)
         os.remove(videoPath)
 
-        return jsonify({'data': finalDict }), 200
+        return jsonify({'data': finalDict, 'recipe': recipe }), 200
     
     return jsonify({'error': 'Invalid file.' }), 400
 
@@ -235,7 +302,7 @@ if __name__ == '__main__':
     # Create the uploads folder if it doesn't exist
     getSpruceData()
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=True, threaded=True)
+    app.run(debug=True, threaded=True, host='0.0.0.0')
 
     #ingredients
     #quantity if possible
