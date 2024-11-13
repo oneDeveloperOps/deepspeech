@@ -5,7 +5,7 @@ from moviepy.audio.fx.all import audio_normalize
 import random
 import string
 from pydub import AudioSegment
-import deepspeech
+# import deepspeech
 import numpy as np
 import wave
 import shutil
@@ -23,11 +23,13 @@ import shlex
 import xmltodict
 import json
 import requests
+import sys, asyncio
+
 
 load_dotenv()
 
 
-modelWisper = whisper.load_model("small")
+modelWisper = whisper.load_model("base", device="cpu")
 
 openai.api_key = os.getenv("OPENAI_APIKEY")
 
@@ -106,11 +108,12 @@ def processAudioAndExtractTranscription(path):
 
 def processAudioAndExtractTranscriptionWisper(path):
     try:
-        result = modelWisper.transcribe(path, task="translate")
+        print(os.path.abspath(path))
+        result = modelWisper.transcribe(os.path.abspath(path), task="translate")
         print(result["language"])
         return path, result["text"]
-    except:
-        print("error")
+    except Exception as e:
+        print(e)
 
 async def transcribe_files(audio_files):
     loop = asyncio.get_event_loop()
@@ -145,10 +148,10 @@ def fetchIngredientsFromGPT(text):
 
 def downloadYoutubeVideo(url, name):
     try:
-        print(url)
-        command = f"yt-dlp {url} -o {os.getcwd()}/uploads/{name} -S res:240"
+        print(os.getcwd())
+        command = f"yt-dlp {url} -o {name} -S res:240"
         args = shlex.split(command)
-        subprocess.run(args, check=True, text=True, capture_output=True)
+        subprocess.run(args, check=True, text=True, capture_output=True, shell = True)
         print("downloaded")
         return 1
     except Exception as e: 
@@ -182,14 +185,16 @@ async def upload_file(mod):
         else:
             print(url)
             isDownloaded = downloadYoutubeVideo(url, newFileName)
-            dirContents = os.listdir("uploads")
+            dirContents = os.listdir()
+            videoName = ""
 
             for v in dirContents:
                 if newFileName in v:
                     print(v)
                     videoName = v
                     break
-            videoPath = os.path.join(folderPath, videoName)
+            videoPath = os.path.join(videoName)
+            print (videoPath)
             if (isDownloaded == -1):
                 return jsonify({'error': 'Video download failed'}), 400
 
@@ -218,6 +223,7 @@ async def upload_file(mod):
 
         finalDict = {}
         for k in finalIngredients:
+            print (k)
             best_match = process.extractOne(k, productNamesArray)
             print(keyValueDictProducts.get(best_match[0]))
             if best_match and best_match[1] > 85:
@@ -233,6 +239,8 @@ async def upload_file(mod):
 
 if __name__ == '__main__':
     # Create the uploads folder if it doesn't exist
+    if sys.platform == "win32" and (3, 8, 0) <= sys.version_info < (3, 9, 0):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     getSpruceData()
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True, threaded=True)

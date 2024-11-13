@@ -4,7 +4,6 @@ eventlet==0.33.0
 aiohttp==3.8.1   
 moviepy==1.0.3
 pydub==0.25.1
-deepspeech==0.9.3
 numpy==1.19.5
 openai
 python-dotenv==0.19.2
@@ -13,3 +12,4 @@ torchvision
 torchaudio
 Werkzeug==2.2.2
 fuzzywuzzy
+xmltodict
