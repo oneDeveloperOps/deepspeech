@@ -5,7 +5,7 @@ from moviepy.audio.fx.all import audio_normalize
 import random
 import string
 from pydub import AudioSegment
-import deepspeech
+#import deepspeech
 import numpy as np
 import wave
 import shutil
