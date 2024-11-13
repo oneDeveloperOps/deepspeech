@@ -27,7 +27,7 @@ import requests
 load_dotenv()
 
 
-modelWisper = whisper.load_model("small")
+modelWisper = whisper.load_model("base")
 
 openai.api_key = os.getenv("OPENAI_APIKEY")
 
@@ -92,7 +92,7 @@ def split_audio(file_path, folderName, segment_length=60):
         start_time = i * segment_length * 1000
         end_time = min((i + 1) * segment_length * 1000, len(audio))
         segment = audio[start_time:end_time]
-        segment.export(os.path.join(output_dir, f"{folderName}{i + 1}.wav"), format="wav")
+        segment.export(os.path.join(output_dir, f"{folderName}{i + 1}.wav"), format="wav", bitrate="96k")
 
         fileName = f"{output_dir}/{folderName}{i + 1}.wav"
         filePaths.append(fileName)
