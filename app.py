@@ -160,6 +160,7 @@ def downloadYoutubeVideo(url, name):
 async def upload_file(mod):
     
     url = request.args.get("url")
+    videoName = ""
 
     if 'file' not in request.files and url == None:
         return jsonify({'error': 'No url or file found'}), 400
