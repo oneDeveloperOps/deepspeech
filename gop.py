@@ -249,10 +249,9 @@ async def upload_file(mod):
 
         translate_client = translate.Client()
         translation = translate_client.translate(full_transcription, target_language='en')
-        print(translation['translatedText'])
+        ingredientsFromGPT = fetchIngredientsFromGPT(translation['translatedText'])
 
-        finalIngredients = []
-
+        finalIngredients = ingredientsFromGPT.keys()
 
         finalDict = {}
         for k in finalIngredients:
