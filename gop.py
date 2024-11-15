@@ -23,6 +23,13 @@ import shlex
 import xmltodict
 import json
 import requests
+from google.cloud import speech_v1p1beta1 as speech
+import io
+from google.cloud import storage
+from google.cloud import translate_v2 as translate
+
+client = speech.SpeechClient()
+
 
 load_dotenv()
 
@@ -45,6 +52,26 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 productNamesArray = []
 keyValueDictProducts = {}
+
+
+
+
+
+
+
+
+def ub(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    # Initialize a client
+    storage_client = storage.Client()
+    # Get the bucket
+    bucket = storage_client.get_bucket(bucket_name)
+    # Create a blob object for the destination file in the bucket
+    blob = bucket.blob(destination_blob_name)
+    # Upload the file
+    blob.upload_from_filename(source_file_name)
+    print(f"File {source_file_name} uploaded to {destination_blob_name}.")
+
 
 def getSpruceData():
     url = "https://api.cmcffxkc6k-nagarroes2-d1-public.model-t.cc.commerce.ondemand.com/occ/v2/spruce-spa/productDetails?fields=DEFAULT"
@@ -148,27 +175,27 @@ def fetchIngredientsFromGPT(text):
 def downloadYoutubeVideo(url, name):
     try:
         print(url)
-        command = f"yt-dlp {url} -o {os.getcwd()}/uploads/{name} -S res:240"
+        command = f"yt-dlp --cookies cookies.txt {url} -o {os.getcwd()}/uploads/{name} -S res:240"
         args = shlex.split(command)
         subprocess.run(args, check=True, text=True, capture_output=True)
         print("downloaded")
         return 1
-    except Exception as e: 
+    except Exception as e:
         print(e)
         return -1
 
 
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
-    
+
     url = request.args.get("url")
     videoName = ""
 
     if 'file' not in request.files and url == None:
         return jsonify({'error': 'No url or file found'}), 400
-    
+
     file = None
-    
+
     try:
         file = request.files['file']
     except:
@@ -176,7 +203,7 @@ async def upload_file(mod):
     videoPath = None
     if file or url:
         newFileName = getFileName()
-        
+
         folderPath = app.config['UPLOAD_FOLDER']
         if file:
             videoName = newFileName + substring_from_last_dot(file.filename)
@@ -202,19 +229,28 @@ async def upload_file(mod):
         processedFilePaths = split_audio(audioPath, newFileName)
         responseResult = []
 
-        for d in processedFilePaths:
-            content = None
-            with io.open(d, 'rb') as audio:
-                content = audio.read()
-            audio = speech.RecognitionAudio(content=content)
-            config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                sample_rate_hertz=16000,
-                language_code="en-US",
-            )
-            response = client.recognize(config=config, audio=audio)
-            print(response)
-           
+        ub("bucket-nagarro", audioPath, audioName)
+
+        audio = speech.RecognitionAudio(uri=f'gs://bucket-nagarro/{audioName}')
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            language_code="en-US",
+            audio_channel_count = 2,
+            alternative_language_codes=["hi-IN"]
+        )
+        operation = client.long_running_recognize(config=config, audio=audio)
+
+        response = operation.result(timeout=600)
+
+        full_transcription = ""
+
+        for result in response.results:
+            full_transcription += result.alternatives[0].transcript + "\n"
+
+        translate_client = translate.Client()
+        translation = translate_client.translate(full_transcription, target_language='en')
+        print(translation['translatedText'])
+
         finalIngredients = []
 
 
@@ -230,7 +266,7 @@ async def upload_file(mod):
         os.remove(videoPath)
 
         return jsonify({'data': finalDict }), 200
-    
+
     return jsonify({'error': 'Invalid file.' }), 400
 
 if __name__ == '__main__':
