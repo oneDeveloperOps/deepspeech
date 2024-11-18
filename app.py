@@ -279,12 +279,16 @@ async def upload_file(mod):
             if is_recipe == "true" or is_recipe == "True":
                 recipe = fetch_recipe_from_transcript(getRecipePrompt(finalString))
                 recipe = map_ingredients_id(recipe)                
-                
             responseData = fetchIngredientsFromGPT(finalString)
             responseResult.append(responseData)
 
         finalIngredients = responseResult[0].keys()
-
+            
+        recipe = ''
+        if is_recipe == "true" or is_recipe == "True":
+            recipe = fetch_recipe_from_transcript(getRecipePrompt(finalString))
+            recipe = map_ingredients_id(recipe)                
+                
 
         finalDict = {}
         for k in finalIngredients:
