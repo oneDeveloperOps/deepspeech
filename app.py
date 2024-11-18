@@ -5,7 +5,6 @@ from moviepy.audio.fx.all import audio_normalize
 import random
 import string
 from pydub import AudioSegment
-import deepspeech
 import numpy as np
 import wave
 import shutil
@@ -19,12 +18,10 @@ from dotenv import load_dotenv
 from fuzzywuzzy import process
 import subprocess
 import shlex
-import xmltodict
 import json
 import requests
 
 load_dotenv()
-
 
 modelWisper = whisper.load_model("small")
 
@@ -131,6 +128,7 @@ def parseIngredients(ingredients):
     for item in ingredient_list:
         ingredient, quantity = item.rsplit('-', 1)
         ingredient_dict[ingredient] = quantity
+    print("Ingredients dict ", ingredient_dict)
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
@@ -207,16 +205,20 @@ def getRecipePrompt(transcript):
     return prompt
 
 
-def fetchRecipeFromTranscript(prompt):
+def fetch_recipe_from_transcript(prompt):
     response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
+        model="gpt-4o-mini", 
+        messages=[{"role": "user", "content": prompt}]
+    )
     recipe = response['choices'][0]['message']['content']
-    cleaned_response = recipe.replace("```json\n", "").replace("```", "").strip()
-    print(cleaned_response)
-    return json.loads(cleaned_response)
+    return json.loads(recipe.replace("```json\n", "").replace("```", "").strip())
 
+def map_ingredients_id(recipe):
+    for ingredient in recipe['ingredients']:
+        ingredient_name = ingredient['ingredient']
+        best_match = process.extractOne(ingredient_name, keyValueDictProducts.keys())
+        ingredient['id'] = keyValueDictProducts.get(best_match[0], "") if best_match and best_match[1] > 85 else ""
+    return recipe
 
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
@@ -275,8 +277,9 @@ async def upload_file(mod):
                 finalString += text + " "
             recipe = ''
             if is_recipe == "true" or is_recipe == "True":
-                recipe = fetchRecipeFromTranscript(getRecipePrompt(finalString))
-            print(recipe)
+                recipe = fetch_recipe_from_transcript(getRecipePrompt(finalString))
+                recipe = map_ingredients_id(recipe)                
+                
             responseData = fetchIngredientsFromGPT(finalString)
             responseResult.append(responseData)
 
@@ -289,7 +292,6 @@ async def upload_file(mod):
             print(keyValueDictProducts.get(best_match[0]))
             if best_match and best_match[1] > 85:
                 finalDict[keyValueDictProducts.get(best_match[0])] = responseResult[0][k]
-
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
         os.remove(videoPath)
