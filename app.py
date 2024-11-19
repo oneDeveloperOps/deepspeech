@@ -127,7 +127,8 @@ def parseIngredients(ingredients):
     ingredient_dict = {}
     for item in ingredient_list:
         ingredient, quantity = item.rsplit('-', 1)
-        ingredient_dict[ingredient] = quantity
+        # ingredient_dict[ingredient] = quantity
+        ingredient_dict[ingredient] = int(quantity)
     print("Ingredients dict ", ingredient_dict)
     return ingredient_dict
 
@@ -282,14 +283,8 @@ async def upload_file(mod):
             responseData = fetchIngredientsFromGPT(finalString)
             responseResult.append(responseData)
 
-        finalIngredients = responseResult[0].keys()
-            
-        recipe = ''
-        if is_recipe == "true" or is_recipe == "True":
-            recipe = fetch_recipe_from_transcript(getRecipePrompt(finalString))
-            recipe = map_ingredients_id(recipe)                
+        finalIngredients = responseResult[0].keys()              
                 
-
         finalDict = {}
         for k in finalIngredients:
             best_match = process.extractOne(k, productNamesArray)
@@ -300,7 +295,7 @@ async def upload_file(mod):
         os.remove(audioPath)
         os.remove(videoPath)
 
-        return jsonify({'data': finalDict, 'recipe': recipe }), 200
+        return jsonify({'codeMap': finalDict, 'recipe': recipe }), 200
     
     return jsonify({'error': 'Invalid file.' }), 400
 
