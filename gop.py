@@ -111,7 +111,10 @@ def split_audio(file_path, folderName, segment_length=60):
     audio = audio.set_frame_rate(16000)
     num_segments = len(audio) // (segment_length * 1000) + 1
     if os.path.exists(("uploads/" + folderName)):
-        shutil.rmtree(("uploads/" + folderName))
+        try:
+            shutil.rmtree(("uploads/" + folderName))
+        except:
+            os.remove(("uploads/" + folderName))
     output_dir = "uploads/" + folderName
     os.makedirs(output_dir, exist_ok=True)
 
