@@ -346,7 +346,7 @@ if __name__ == '__main__':
     # Create the uploads folder if it doesn't exist
     getSpruceData()
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=True, threaded=True)
+    app.run(host="0.0.0.0", debug=True, threaded=True)
 
     #ingredients
     #quantity if possible
