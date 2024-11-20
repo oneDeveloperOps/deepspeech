@@ -159,11 +159,14 @@ async def transcribe_files(audio_files):
     return results
 
 def parseIngredients(ingredients):
-    ingredient_list = ast.literal_eval(ingredients)
     ingredient_dict = {}
-    for item in ingredient_list:
-        ingredient, quantity = item.rsplit('-', 1)
-        ingredient_dict[ingredient] = quantity
+    try:
+        ingredient_list = ast.literal_eval(ingredients)
+        for item in ingredient_list:
+            ingredient, quantity = item.rsplit('-', 1)
+            ingredient_dict[ingredient] = quantity
+    except Exception as e:
+        print(e)
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
