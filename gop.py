@@ -27,7 +27,7 @@ from google.cloud import storage
 from google.cloud import translate_v2 as translate
 import redis
 import base64
-from urllib.parse import urlparse
+import urllib.parse
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 client = speech.SpeechClient()
