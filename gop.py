@@ -27,6 +27,7 @@ from google.cloud import storage
 from google.cloud import translate_v2 as translate
 import redis
 import base64
+from urllib.parse import urlparse
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 client = speech.SpeechClient()
@@ -270,7 +271,7 @@ def getRecipePrompt(transcript):
 async def upload_file():
     encoded_bytes = ''
     is_recipe = request.args.get("recipe")
-    url = request.args.get("url")
+    url = urllib.parse.unquote(request.args.get("url"))
     videoName = ""
 
     if 'file' not in request.files and url == None:
