@@ -259,6 +259,7 @@ def getRecipePrompt(transcript):
 @app.route('/upload-video/<mod>', methods=['POST'])
 async def upload_file(mod):
 
+    is_recipe = request.args.get("recipe")
     url = request.args.get("url")
     videoName = ""
 
