@@ -25,7 +25,10 @@ from google.cloud import speech_v1p1beta1 as speech
 import io
 from google.cloud import storage
 from google.cloud import translate_v2 as translate
+import redis
+import base64
 
+r = redis.StrictRedis(host='localhost', port=6379, db=0)
 client = speech.SpeechClient()
 
 
@@ -265,7 +268,7 @@ def getRecipePrompt(transcript):
 
 @app.route('/upload-video', methods=['POST'])
 async def upload_file():
-
+    encoded_bytes = ''
     is_recipe = request.args.get("recipe")
     url = request.args.get("url")
     videoName = ""
@@ -290,6 +293,12 @@ async def upload_file():
             file.save(videoPath)
         else:
             print(url)
+            encoded_bytes = base64.b64encode(url.encode('utf-8'))
+            
+            data = r.get(encoded_bytes)
+            if (data):
+                return jsonify(json.loads(data)), 200
+
             isDownloaded = downloadYoutubeVideo(url, newFileName)
             dirContents = os.listdir("uploads")
 
@@ -349,6 +358,7 @@ async def upload_file():
         os.remove(audioPath)
         os.remove(videoPath)
         recipe["codeMap"] = finalDict
+        r.set(encoded_bytes, json.dumps(recipe))
         return jsonify(recipe), 200
 
     return jsonify({'error': 'Invalid file.' }), 400
