@@ -164,7 +164,7 @@ def parseIngredients(ingredients):
         ingredient_list = ast.literal_eval(ingredients)
         for item in ingredient_list:
             ingredient, quantity = item.rsplit('-', 1)
-            ingredient_dict[ingredient] = quantity
+            ingredient_dict[ingredient] = int(quantity)
     except Exception as e:
         print(e)
     return ingredient_dict
@@ -211,7 +211,6 @@ def map_ingredients_id(recipe):
     for ingredient in recipe['ingredients']:
         ingredient_name = ingredient['ingredient']
         best_match = process.extractOne(ingredient_name, keyValueDictProducts.keys())
-        ingredient['id'] = keyValueDictProducts.get(best_match[0], "") if best_match and best_match[1] > 85 else ""
     return recipe
 
 def getRecipePrompt(transcript):
@@ -353,7 +352,7 @@ async def upload_file(mod):
         os.remove(audioPath)
         os.remove(videoPath)
 
-        return jsonify({'data': finalDict, 'recipe': recipe }), 200
+        return jsonify({'codeMap': finalDict, 'recipe': recipe }), 200
 
     return jsonify({'error': 'Invalid file.' }), 400
 
