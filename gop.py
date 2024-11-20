@@ -336,7 +336,7 @@ async def upload_file(mod):
             best_match = process.extractOne(k, productNamesArray)
             print(keyValueDictProducts.get(best_match[0]))
             if best_match and best_match[1] > 85:
-                finalDict[keyValueDictProducts.get(best_match[0])] = responseResult[0][k]
+                finalDict[keyValueDictProducts.get(best_match[0])] = ingredientsFromGPT[k]
 
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
