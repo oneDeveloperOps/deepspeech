@@ -17,10 +17,8 @@ import openai
 import ast
 from dotenv import load_dotenv
 from fuzzywuzzy import process
-from pytube import YouTube
 import subprocess
 import shlex
-import xmltodict
 import json
 import requests
 from google.cloud import speech_v1p1beta1 as speech
@@ -221,7 +219,7 @@ def getRecipePrompt(transcript):
     Recipe Title – A clear, concise title for the recipe.
     Ingredients – List containing all ingredients with their quantities.
     Recipe – List containing the cooking process in easy-to-follow steps.
-    Nutritional Information – Provide the nutritional values if mentioned in the video.
+    Nutritional Information – Provide the nutritional values if mentioned in the video otherwise dont mention.
     Description – A brief description of the dish.
     Allergens – List any allergens mentioned (e.g., gluten, dairy).
     Bite Type – Specify if the recipe is vegetarian, vegan, non-vegetarian, etc.
@@ -258,7 +256,6 @@ def getRecipePrompt(transcript):
 
     - Provide a friendly, easy-to-understand tone, suitable for a general audience.
     - Avoid including unnecessary details that aren't part of the recipe or cooking process (e.g., unrelated discussions).
-    - If there are any unclear steps or missing information, make sure to clearly indicate them as "Unclear" or "Missing."
 
     Transcript:
     Here is the transcript from the video: {transcript}
@@ -351,8 +348,8 @@ async def upload_file():
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
         os.remove(videoPath)
-
-        return jsonify({'codeMap': finalDict, 'recipe': recipe }), 200
+        recipe["codeMap"] = finalDict
+        return jsonify(recipe), 200
 
     return jsonify({'error': 'Invalid file.' }), 400
 
