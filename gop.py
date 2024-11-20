@@ -167,7 +167,7 @@ def parseIngredients(ingredients):
     return ingredient_dict
 
 def fetchIngredientsFromGPT(text):
-    prompt = f"Please extract ingredients from the text, make sure to translate ingredients in english for example bangun should be eggplant, also if possible extract quantity in array form like ['egg-1', 'tomato-2'], in quantity please include only integer like [egg-1] here egg is ingredient and 1 is quantity , make sure to not add any additional text in response just array, if unable to extract quantity keep it 0, Keep the first letter capital, text is: {text}"
+    prompt = f"Please extract ingredients from the text, make sure to translate ingredients in english for example bangun should be eggplant, also if possible extract quantity in array form like ['egg-1', 'tomato-2'], in quantity please include only integer like [egg-1] here egg is ingredient and 1 is quantity , make sure to not add any additional text in response just array, if unable to extract quantity keep it 0 and if the quantity is greater than 10 keep it 1, Keep the first letter capital, text is: {text}"
     response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
