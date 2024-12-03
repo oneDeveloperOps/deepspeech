@@ -5,7 +5,6 @@ from moviepy.audio.fx.all import audio_normalize
 import random
 import string
 from pydub import AudioSegment
-#import deepspeech
 import numpy as np
 import wave
 import shutil
@@ -28,13 +27,16 @@ from google.cloud import translate_v2 as translate
 import redis
 import base64
 import urllib.parse
+import logging
+import time  
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 client = speech.SpeechClient()
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
 
 load_dotenv()
-
 
 modelWisper = whisper.load_model("base")
 
@@ -55,13 +57,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 productNamesArray = []
 keyValueDictProducts = {}
 
-
-
-
-
-
-
-
 def ub(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
     # Initialize a client
@@ -73,7 +68,6 @@ def ub(bucket_name, source_file_name, destination_blob_name):
     # Upload the file
     blob.upload_from_filename(source_file_name)
     print(f"File {source_file_name} uploaded to {destination_blob_name}.")
-
 
 def getSpruceData():
     url = "https://api.cmcffxkc6k-nagarroes2-d1-public.model-t.cc.commerce.ondemand.com/occ/v2/spruce-spa/productDetails?fields=DEFAULT"
@@ -266,15 +260,18 @@ def getRecipePrompt(transcript):
     """
     return prompt
 
-
 @app.route('/upload-video', methods=['POST'])
 async def upload_file():
+
+    start_time = time.time()
+    logger.info("Upload video process started")
     encoded_bytes = ''
     is_recipe = request.args.get("recipe")
     url = urllib.parse.unquote(request.args.get("url"))
     videoName = ""
 
     if 'file' not in request.files and url == None:
+        logger.error("No URL or file found")
         return jsonify({'error': 'No url or file found'}), 400
 
     file = None
@@ -282,7 +279,7 @@ async def upload_file():
     try:
         file = request.files['file']
     except:
-        print("file not available checking with url")
+        logger.error("File not available checking with url")
     videoPath = None
     if file or url:
         newFileName = getFileName()
@@ -293,13 +290,12 @@ async def upload_file():
             videoPath = os.path.join(folderPath, videoName)
             file.save(videoPath)
         else:
-            print(url)
-            encoded_bytes = base64.b64encode(url.encode('utf-8'))
-            
+            logger.info(f"Downloading video from URL: {url}")
+            encoded_bytes = base64.b64encode(url.encode('utf-8'))            
             data = r.get(encoded_bytes)
             if (data):
+                logger.info("Video data found in cache")
                 return jsonify(json.loads(data)), 200
-
             isDownloaded = downloadYoutubeVideo(url, newFileName)
             dirContents = os.listdir("uploads")
 
@@ -310,16 +306,32 @@ async def upload_file():
                     break
             videoPath = os.path.join(folderPath, videoName)
             if (isDownloaded == -1):
+                logger.error("Video download failed")
                 return jsonify({'error': 'Video download failed'}), 400
 
         audioName =  newFileName + '.wav'
         audioPath = os.path.join(folderPath, audioName)
+        logger.info("Converting video to audio")
+        audio_conversion_start = time.time()
         convert_video_to_audio(videoPath, audioPath)
+        audio_conversion_end = time.time()
+        logger.info(f"Audio conversion completed in {audio_conversion_end - audio_conversion_start:.2f} seconds")
+        \
+        logger.info("Splitting audio into segments")
+        audio_split_start = time.time()
         processedFilePaths = split_audio(audioPath, newFileName)
+        audio_split_end = time.time()
+        logger.info(f"Audio splitting completed in {audio_split_end - audio_split_start:.2f} seconds")
         responseResult = []
-
+        
+        logger.info("Uploading audio to cloud storage")
+        upload_start = time.time()
         ub("bucket-nagarro", audioPath, audioName)
+        upload_end = time.time()
+        logger.info(f"Upload completed in {upload_end - upload_start:.2f} seconds")
 
+        logger.info("Transcribing audio")
+        transcription_start = time.time()
         audio = speech.RecognitionAudio(uri=f'gs://bucket-nagarro/{audioName}')
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -328,7 +340,6 @@ async def upload_file():
             alternative_language_codes=["hi-IN"]
         )
         operation = client.long_running_recognize(config=config, audio=audio)
-
         response = operation.result(timeout=600)
 
         full_transcription = ""
@@ -336,8 +347,15 @@ async def upload_file():
         for result in response.results:
             full_transcription += result.alternatives[0].transcript + "\n"
 
+        transcription_end = time.time()
+        logger.info(f"Transcription completed in {transcription_end - transcription_start:.2f} seconds")
+
+        logger.info("Translating transcription")
+        translation_start = time.time()
         translate_client = translate.Client()
         translation = translate_client.translate(full_transcription, target_language='en')
+        translation_end = time.time()
+        logger.info(f"Translation completed in {translation_end - translation_start:.2f} seconds")
 
         recipe = ''
         if is_recipe == "true" or is_recipe == "True":
@@ -354,14 +372,17 @@ async def upload_file():
             print(keyValueDictProducts.get(best_match[0]))
             if best_match and best_match[1] > 85:
                 finalDict[keyValueDictProducts.get(best_match[0])] = ingredientsFromGPT[k]
-
+                
+        logger.info("Cleaning up temporary files")
         shutil.rmtree(f"{folderPath}/{newFileName}")
         os.remove(audioPath)
         os.remove(videoPath)
         recipe["codeMap"] = finalDict
         r.set(encoded_bytes, json.dumps(recipe))
+        total_time = time.time() - start_time 
+        logger.info(f"Total upload video process completed in {total_time:.2f} seconds")
         return jsonify(recipe), 200
-
+    logger.error("Invalid file provided")
     return jsonify({'error': 'Invalid file.' }), 400
 
 if __name__ == '__main__':
